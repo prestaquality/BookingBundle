@@ -21,13 +21,14 @@ class KamiBookingExtension extends Extension
     {
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);
+        if(isset($config['entity_class'])){
+            $loader = new Loader\XmlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
+            $loader->load('services.xml');
 
-        $loader = new Loader\XmlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
-        $loader->load('services.xml');
-
-        $container->setParameter(
-            'kami_booking.entity_class',
-            $config['entity_class']
-        );
+            $container->setParameter(
+                'kami_booking.entity_class',
+                $config['entity_class']
+            );
+        }
     }
 }
