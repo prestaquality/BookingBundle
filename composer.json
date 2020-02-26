@@ -3,12 +3,16 @@
     "type": "symfony-bundle",
     "keywords": ["booking", "availability", "calendar"],
     "homepage": "https://github.com/kamilabs/BookingBundle",
-    "description": "Adds some booking functionality to your Symfony project",
+    "description": "Adds some booking functionality to your Symfony project. Compatible with Symfony 4.4",
     "license": "MIT",
     "authors": [
         {
             "name": "Iakov Mishchenko",
             "email": "iakov@kamilabs.com"
+        },
+        {
+            "name": "Berto Ferrero",
+            "email": "berto@prestaquality.com"
         }
     ],
     "minimum-stability": "dev",
