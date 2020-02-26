@@ -21,7 +21,7 @@ class Configuration implements ConfigurationInterface
         $treeBuilder->root('kami_booking')
             ->children()
                 ->scalarNode('entity_class')
-                ->isRequired()
+                //->isRequired()
                 ->end()
             ->end();
 
