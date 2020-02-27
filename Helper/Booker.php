@@ -33,32 +33,27 @@ class Booker
         $this->repository = $doctrine->getRepository($entity);
     }
 
-    /**
-     * @param $item
-     * @param \DateTime $start
-     * @param \DateTime $end
-     *
-     * @return bool
-     */
-    public function isAvailableForPeriod($item, \DateTime $start, \DateTime $end)
+
+    public function getFreeCapacityForDateQB($item, \DateTime $date): QueryBuilder
     {
+        //Reseteamos la hora a 0
+        $date->setTime(0, 0, 0, 0);
+        //Construimos
         $qb = $this->repository->createQueryBuilder('b');
-        $query = $qb->select('b.id')
-            ->where('b.start <= :start AND b.end >= :end')
-            ->orWhere('b.start >= :start AND b.end <= :end')
-            ->orWhere('b.start >= :start AND b.end >= :end AND b.start <= :end')
-            ->orWhere('b.start <= :start AND b.end <= :end AND b.end >= :start')
+        $qb->select('item.capacity - count(b.id) freecapacity');
+        $qb->andWhere('b.date = :date');
+        $qb->innerJoin('b.item', 'item');
+        $qb->andWhere('item = :item');
+        $qb->setParameter('item', $item);
+        $qb->setParameter('date', $date);
+        return $qb;
+    }
 
-            ->andWhere('b.item = :item')
-            ->setParameters([
-                'start'=> $start,
-                'end'  => $end,
-                'item' => $item,
-            ]);
-
-        $results = $query->getQuery()->getResult();
-
-        return count($results) === 0;
+    public function getFreeCapacityForDate($item, \DateTime $date): int
+    {
+        $qb = $this->getFreeCapacityForDateQB($item, $date);
+        $result = $qb->getQuery()->getSingleScalarResult();
+        return (int) $result;
     }
 
     /**
@@ -67,61 +62,40 @@ class Booker
      *
      * @return bool
      */
-    public function isAvailableForDate($item, \DateTime $date)
+    public function isAvailableForDate($item, \DateTime $date): bool
     {
+        $capacity = $this->getFreeCapacityForDate($item, $date);
+        return $capacity > 0;
+    }
+
+    /**
+     * Indicates if the user already booked this class on this date
+     */
+    public function hasUserAlreadyBookedIt($item, $user, \DateTime $date):bool{
+        //Reseteamos la hora a 0
+        $date->setTime(0, 0, 0, 0);
+        //Construimos
         $qb = $this->repository->createQueryBuilder('b');
-        $results = $qb->select('b.id')
-            ->where('b.start <= :date AND b.end >= :date')
-            ->andWhere('b.item = :item')
-            ->setParameter('item', $item)
-            ->setParameter('date', $date)
-            ->getQuery()
-            ->getResult();
-
-        return count($results) === 0;
+        $qb->select('b.id');
+        $qb->andWhere('b.date = :date');
+        $qb->andWhere('b.item = :item');
+        $qb->andWhere('b.user = :user');
+        $qb->setParameter('item', $item);
+        $qb->setParameter('date', $date);
+        $qb->setParameter('user', $user);
+        
+        $results = $qb->getQuery()->getResult();
+        return count($results) > 0;
     }
 
-    /**
-     * @param QueryBuilder $queryBuilder
-     * @param $join array(field, alias)
-     * @param \DateTime $start
-     * @param \DateTime $end
-     */
-    public function whereAvailableForPeriod(QueryBuilder $queryBuilder, $join, \DateTime $start, \DateTime $end)
+    public function book($item, $user, \DateTime $date)
     {
-        $queryBuilder->leftJoin($join['field'], $join['alias'])
-            ->where($join['alias'].'.start >= :start AND '.$join['alias'].'.end <= :end')
-            ->orWhere($join['alias'].'.start <= :start AND '.$join['alias'].'.end >= :end')
-            ->orWhere($join['alias'].'.start <= :start AND '.$join['alias'].'.end >= :end AND '.
-                $join['alias'].'.start <= :end')
-            ->orWhere($join['alias'].'.start >= :start AND '.$join['alias'].'.end <= :end AND '.
-                $join['alias'].'.end >= :start')
-
-            ->setParameters([
-                'start'=> $start,
-                'end'  => $end,
-            ]);
-    }
-
-    /**
-     * @param QueryBuilder $queryBuilder
-     * @param $join
-     * @param \DateTime $date
-     */
-    public function whereAvailableForDate(QueryBuilder $queryBuilder, $join, \DateTime $date)
-    {
-        $queryBuilder->leftJoin($join['field'], $join['alias'])
-            ->where('b.start >= :date AND b.end <= :date')
-            ->setParameter('date', $date);
-    }
-
-    public function book($item, \DateTime $start, \DateTime $end)
-    {
-        if ($this->isAvailableForPeriod($item, $start, $end)) {
+        //TODO comprobar si el usuario ya está en esta clase, que no se registre dos veces
+        if ($this->isAvailableForDate($item, $date) && !$this->hasUserAlreadyBookedIt($item, $user, $date)) {
             $entity = new $this->entity();
-            $entity->setStart($start);
-            $entity->setEnd($end);
             $entity->setItem($item);
+            $entity->setDate(new \DateTime());
+            $entity->setUser($user); //TODO
 
             $manager = $this->doctrine->getManager();
             $manager->persist($entity);
