@@ -18,8 +18,8 @@
         </service>
         <service id="%kami.booker.class%" alias="booker"/>
 
-        <service id="booking_calendar" class="%kami.booking_calendar.class%">
-            <argument>%kami.booking_calendar.class%</argument>
+        <service id="booking_calendar" class="%kami.booking_calendar.class%">            
+            <argument type="service" id="booker" />
             <argument type="service" id="doctrine" />
             <tag name="twig.extension" />
         </service>

@@ -34,6 +34,34 @@ class Booker
     }
 
 
+    public function getFreeCapacityForDateRangeQB($item, \DateTime $from, \DateTime $to): QueryBuilder
+    {
+        //Reseteamos la hora a 0
+        $from->setTime(0, 0, 0, 0);
+        $to->setTime(0, 0, 0, 0);
+        //Construimos
+        $qb = $this->repository->createQueryBuilder('b');
+        $qb->select('item.capacity - count(b.id) freecapacity');
+        $qb->andWhere('b.date >= :from');
+        $qb->andWhere('b.date <= :to');
+        $qb->innerJoin('b.item', 'item');
+        $qb->andWhere('item = :item');
+        $qb->andWhere('item.active = :active');
+        $qb->setParameter('item', $item);
+        $qb->setParameter('from', $from);
+        $qb->setParameter('to', $to);
+        $qb->setParameter('active', true);
+        return $qb;
+    }
+
+    public function getFreeCapacityForDateRange($item, \DateTime $from, \DateTime $to)
+    {
+        $qb = $this->getFreeCapacityForDateRangeQB($item, $from, $to);
+        $result = $qb->getQuery()->getScalarResult();
+        return $result;
+    }
+
+
     public function getFreeCapacityForDateQB($item, \DateTime $date): QueryBuilder
     {
         //Reseteamos la hora a 0
@@ -44,8 +72,10 @@ class Booker
         $qb->andWhere('b.date = :date');
         $qb->innerJoin('b.item', 'item');
         $qb->andWhere('item = :item');
+        $qb->andWhere('item.active = :active');
         $qb->setParameter('item', $item);
         $qb->setParameter('date', $date);
+        $qb->setParameter('active', true);
         return $qb;
     }
 

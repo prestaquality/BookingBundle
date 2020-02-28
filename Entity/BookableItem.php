@@ -19,6 +19,11 @@ abstract class BookableItem
      */
     protected $capacity;
 
+    /**
+     * @ORM\Column(type="boolean")
+     */
+    private $active = true;
+
     public function getCapacity(): ?int
     {
         return $this->capacity;
@@ -27,6 +32,20 @@ abstract class BookableItem
     public function setCapacity(int $capacity): self
     {
         $this->capacity = $capacity;
+
+        return $this;
+    }
+
+    
+
+    public function getActive(): ?bool
+    {
+        return $this->active;
+    }
+
+    public function setActive(bool $active): self
+    {
+        $this->active = $active;
 
         return $this;
     }
